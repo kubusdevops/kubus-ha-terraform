@@ -1,4 +1,4 @@
-resource "aws_launch_template" "kubus_ha_lunchtemplate" {
+resource "aws_launch_template" "kubus_ha_launchtemplate" {
   name_prefix   = "kubus-ha-"
   image_id      = var.ami
   instance_type = "t3.micro"
@@ -8,7 +8,10 @@ resource "aws_launch_template" "kubus_ha_lunchtemplate" {
     security_groups             = [aws_security_group.kubus_ha_sg.id]
   }
 
-#   user_data = base64encode(data.template_file.kubus_ha_user_data.rendered)
+    user_data = filebase64("userdata.sh")
+    iam_instance_profile {
+        name = aws_iam_instance_profile.kubus_ha_instance_profile.name
+    }
 
 
 }
@@ -20,7 +23,7 @@ resource "aws_autoscaling_group" "kubus_autoscaling_group" {
   min_size            = 3
   vpc_zone_identifier = var.subnet_ids
   launch_template {
-    id      = aws_launch_template.kubus_ha_lunchtemplate.id
+    id      = aws_launch_template.kubus_ha_launchtemplate.id
     version = "$Latest"
   }
 
@@ -29,5 +32,14 @@ resource "aws_autoscaling_group" "kubus_autoscaling_group" {
     value               = "kubus-ha-instance"
     propagate_at_launch = true
   }
+  target_group_arns = [aws_lb_target_group.kubus_lb_target_group.arn]
+  health_check_type         = "ELB"
+  health_check_grace_period = 300
+ 
 
+}
+
+resource "aws_autoscaling_attachment" "kubus_asg_attachment" {
+  autoscaling_group_name = aws_autoscaling_group.kubus_autoscaling_group.name
+  lb_target_group_arn   = aws_lb_target_group.kubus_lb_target_group.arn
 }

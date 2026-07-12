@@ -9,7 +9,7 @@ terraform {
   }
   backend "s3" {
     bucket = "kubus-terraform-state"
-    key    = "kubus-ha-terraform.tfstate"
+    key    = "kubus-ha/terraform.tfstate"
     region = "us-east-1"
   }
 }
